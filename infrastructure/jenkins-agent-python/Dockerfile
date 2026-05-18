@@ -23,4 +23,4 @@ RUN pip3 install --no-cache-dir --break-system-packages \
         bandit==1.7.10 \
         coverage==7.4.4
 
-USER jenkins
+# Sin USER al final: setup-sshd del base image arranca como root y baja a jenkins.

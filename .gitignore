@@ -28,3 +28,4 @@ Thumbs.db
 .env.local
 infrastructure/jenkins_home/
 infrastructure/agents_home/
+infrastructure/secrets/

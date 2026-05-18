@@ -1,5 +1,5 @@
 # Jenkins controller con JDK21, plugins precargados y JCasC.
-FROM jenkins/jenkins:2.452.3-lts-jdk21
+FROM jenkins/jenkins:lts-jdk21
 
 USER root
 
