@@ -26,7 +26,7 @@ jenkins:
         name: "agent-python"
         labelString: "python pytest flake8 bandit coverage flask curl"
         nodeDescription: "Agente para pruebas Python (unit, rest, static, security, coverage)"
-        numExecutors: 2
+        numExecutors: 3
         remoteFS: "/home/jenkins/agent"
         retentionStrategy: "always"
         launcher:

@@ -1,0 +1,184 @@
+pipeline {
+  agent none
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    skipDefaultCheckout()
+  }
+
+  environment {
+    BASE_URL      = 'http://flask:5000'
+    BASE_URL_MOCK = 'http://wiremock:8080'
+  }
+
+  stages {
+
+    stage('Get Code') {
+      agent { label 'controller' }
+      steps {
+        cleanWs()
+        checkout scm
+        sh '''
+          whoami
+          hostname
+          echo $WORKSPACE
+        '''
+        stash name: 'workspace', includes: '**', excludes: '.git/**'
+      }
+    }
+
+    stage('Parallel Tests') {
+      parallel {
+
+        stage('Test Suite') {
+          agent { label 'python' }
+          environment { PYTHONPATH = "${WORKSPACE}" }
+          stages {
+            stage('Unit') {
+              steps {
+                cleanWs()
+                unstash 'workspace'
+                sh '''
+                  whoami
+                  hostname
+                  echo $WORKSPACE
+                  coverage run -m pytest --junitxml=result-unit.xml test/unit/
+                '''
+              }
+              post {
+                always {
+                  junit allowEmptyResults: true, testResults: 'result-unit.xml'
+                }
+              }
+            }
+            stage('Coverage') {
+              steps {
+                sh '''
+                  whoami
+                  hostname
+                  echo $WORKSPACE
+                  coverage xml -o coverage.xml
+                  coverage report
+                '''
+              }
+              post {
+                always {
+                  recordCoverage(
+                    tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']],
+                    qualityGates: [
+                      [metric: 'LINE',   baseline: 'PROJECT', threshold: 85.0, criticality: 'FAILURE'],
+                      [metric: 'LINE',   baseline: 'PROJECT', threshold: 95.0, criticality: 'UNSTABLE'],
+                      [metric: 'BRANCH', baseline: 'PROJECT', threshold: 80.0, criticality: 'FAILURE'],
+                      [metric: 'BRANCH', baseline: 'PROJECT', threshold: 90.0, criticality: 'UNSTABLE']
+                    ]
+                  )
+                }
+              }
+            }
+          }
+        }
+
+        stage('Quality') {
+          agent { label 'python' }
+          stages {
+            stage('Static') {
+              steps {
+                cleanWs()
+                unstash 'workspace'
+                sh '''
+                  whoami
+                  hostname
+                  echo $WORKSPACE
+                  flake8 --format=pylint --exit-zero --output-file=flake8.log app/
+                  cat flake8.log
+                '''
+              }
+              post {
+                always {
+                  recordIssues(
+                    tools: [flake8(pattern: 'flake8.log')],
+                    qualityGates: [
+                      [threshold: 8,  type: 'TOTAL', unstable: true],
+                      [threshold: 10, type: 'TOTAL', unstable: false]
+                    ]
+                  )
+                }
+              }
+            }
+            stage('Security') {
+              steps {
+                sh '''
+                  whoami
+                  hostname
+                  echo $WORKSPACE
+                  bandit --exit-zero -r app/ -f txt -o bandit.log
+                  cat bandit.log
+                '''
+              }
+              post {
+                always {
+                  recordIssues(
+                    tools: [pyLint(pattern: 'bandit.log')],
+                    qualityGates: [
+                      [threshold: 2, type: 'TOTAL', unstable: true],
+                      [threshold: 4, type: 'TOTAL', unstable: false]
+                    ]
+                  )
+                }
+              }
+            }
+          }
+        }
+
+        stage('Integration') {
+          agent { label 'python' }
+          environment { PYTHONPATH = "${WORKSPACE}" }
+          steps {
+            cleanWs()
+            unstash 'workspace'
+            sh '''
+              whoami
+              hostname
+              echo $WORKSPACE
+              pytest --junitxml=result-rest.xml test/rest/ || true
+            '''
+          }
+          post {
+            always {
+              junit allowEmptyResults: true, testResults: 'result-rest.xml'
+            }
+          }
+        }
+
+        stage('Load') {
+          agent { label 'jmeter' }
+          steps {
+            cleanWs()
+            unstash 'workspace'
+            sh '''
+              whoami
+              hostname
+              echo $WORKSPACE
+              jmeter -n -t test/jmeter/flask.jmx -l perf-result.jtl \
+                -Jhost=flask -Jport=5000
+            '''
+            perfReport sourceDataFiles: 'perf-result.jtl'
+          }
+        }
+
+      }
+    }
+
+  }
+
+  post {
+    always {
+      node('controller') {
+        cleanWs()
+      }
+    }
+  }
+}
