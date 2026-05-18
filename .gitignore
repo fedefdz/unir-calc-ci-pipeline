@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.venv/
+venv/
+
+# Jenkins
+result-*.xml
+*.jtl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.idea/
+.vscode/
+*.swp
+
+# Local secrets / volúmenes Podman
+.env
+.env.local
+infrastructure/jenkins_home/
+infrastructure/agents_home/

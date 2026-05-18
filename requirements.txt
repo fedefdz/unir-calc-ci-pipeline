@@ -1,0 +1,14 @@
+# Runtime
+flask==3.0.3
+
+# Testing
+pytest==7.4.4
+
+# Static analysis
+flake8==6.1.0
+
+# Security analysis
+bandit==1.7.10
+
+# Coverage
+coverage==7.4.4
