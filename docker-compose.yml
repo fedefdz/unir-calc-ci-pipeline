@@ -76,3 +76,17 @@ services:
         aliases:
           - wiremock
     restart: unless-stopped
+
+  flask:
+    build: ./infrastructure/flask
+    container_name: jenkins-flask
+    hostname: flask
+    expose:
+      - "5000"  # Solo accesible en la red interna como http://flask:5000
+    volumes:
+      - ./app:/workspace/app:ro
+    networks:
+      jenkins:
+        aliases:
+          - flask
+    restart: unless-stopped
