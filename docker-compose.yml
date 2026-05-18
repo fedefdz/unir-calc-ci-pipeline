@@ -1,0 +1,78 @@
+# Stack local del CP1.2: Jenkins controller + 2 agentes SSH + Wiremock.
+# Levantar con:  ./scripts/bootstrap.sh   (genera secretos si faltan y arranca todo)
+
+name: unir-calc-ci
+
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+
+secrets:
+  controller_ssh_key:
+    file: ./infrastructure/secrets/controller_ssh_key
+
+services:
+  controller:
+    build: ./infrastructure/jenkins-controller
+    container_name: jenkins-controller
+    hostname: controller
+    ports:
+      - "8080:8080"    # UI web de Jenkins
+      - "50000:50000"  # JNLP (queda expuesto pero no se usa: agentes son SSH)
+    environment:
+      JENKINS_ADMIN_ID: ${JENKINS_ADMIN_ID:-admin}
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:-admin}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    secrets:
+      - controller_ssh_key
+    networks:
+      jenkins:
+        aliases:
+          - controller
+    restart: unless-stopped
+
+  agent-python:
+    build: ./infrastructure/jenkins-agent-python
+    container_name: jenkins-agent-python
+    hostname: agent-python
+    environment:
+      JENKINS_AGENT_SSH_PUBKEY: ${CONTROLLER_SSH_PUBKEY}
+    networks:
+      jenkins:
+        aliases:
+          - agent-python
+    depends_on:
+      - controller
+    restart: unless-stopped
+
+  agent-jmeter:
+    build: ./infrastructure/jenkins-agent-jmeter
+    container_name: jenkins-agent-jmeter
+    hostname: agent-jmeter
+    environment:
+      JENKINS_AGENT_SSH_PUBKEY: ${CONTROLLER_SSH_PUBKEY}
+    networks:
+      jenkins:
+        aliases:
+          - agent-jmeter
+    depends_on:
+      - controller
+    restart: unless-stopped
+
+  wiremock:
+    build: ./infrastructure/jenkins-agent-wiremock
+    container_name: jenkins-wiremock
+    hostname: wiremock
+    ports:
+      - "9090:8080"  # Acceso humano desde host: http://localhost:9090
+    volumes:
+      - ./test/wiremock/mappings:/home/wiremock/mappings:ro
+    networks:
+      jenkins:
+        aliases:
+          - wiremock
+    restart: unless-stopped

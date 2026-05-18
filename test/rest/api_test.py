@@ -5,8 +5,8 @@ from urllib.request import urlopen
 
 import pytest
 
-BASE_URL = "http://localhost:5000"
-BASE_URL_MOCK = "http://localhost:9090"
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:5000")
+BASE_URL_MOCK = os.environ.get("BASE_URL_MOCK", "http://localhost:9090")
 DEFAULT_TIMEOUT = 2  # in secs
 
 @pytest.mark.api

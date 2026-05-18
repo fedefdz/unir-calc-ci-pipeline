@@ -1,0 +1,76 @@
+# Jenkins Configuration as Code (JCasC) — declarative bootstrap.
+# Renderea sin wizard, con admin local y 2 agentes SSH.
+
+jenkins:
+  systemMessage: "CP1.2 — UNIR Experto DevOps & Cloud"
+  numExecutors: 1
+  mode: NORMAL
+  labelString: "controller"
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: ${JENKINS_ADMIN_ID:-admin}
+          password: ${JENKINS_ADMIN_PASSWORD:-admin}
+
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+  remotingSecurity:
+    enabled: true
+
+  nodes:
+    - permanent:
+        name: "agent-python"
+        labelString: "python pytest flake8 bandit coverage flask curl"
+        nodeDescription: "Agente para pruebas Python (unit, rest, static, security, coverage)"
+        numExecutors: 2
+        remoteFS: "/home/jenkins/agent"
+        retentionStrategy: "always"
+        launcher:
+          ssh:
+            host: "agent-python"
+            port: 22
+            credentialsId: "controller-ssh-key"
+            launchTimeoutSeconds: 60
+            maxNumRetries: 5
+            retryWaitTime: 10
+            sshHostKeyVerificationStrategy:
+              nonVerifyingKeyVerificationStrategy: {}
+
+    - permanent:
+        name: "agent-jmeter"
+        labelString: "jmeter performance"
+        nodeDescription: "Agente para pruebas de rendimiento con JMeter"
+        numExecutors: 1
+        remoteFS: "/home/jenkins/agent"
+        retentionStrategy: "always"
+        launcher:
+          ssh:
+            host: "agent-jmeter"
+            port: 22
+            credentialsId: "controller-ssh-key"
+            launchTimeoutSeconds: 60
+            maxNumRetries: 5
+            retryWaitTime: 10
+            sshHostKeyVerificationStrategy:
+              nonVerifyingKeyVerificationStrategy: {}
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - basicSSHUserPrivateKey:
+              scope: SYSTEM
+              id: "controller-ssh-key"
+              username: "jenkins"
+              description: "Llave privada del controller para SSH a los agentes"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${readFile:/run/secrets/controller_ssh_key}"
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
