@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -fsSL "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" \
        | tar -xz -C /opt/ \
     && mv "/opt/apache-jmeter-${JMETER_VERSION}" "${JMETER_HOME}" \
-    && chmod +x ${JMETER_HOME}/bin/jmeter
+    && chmod +x ${JMETER_HOME}/bin/jmeter \
+    && ln -s ${JMETER_HOME}/bin/jmeter /usr/local/bin/jmeter
 
 # Sin USER al final: setup-sshd del base image arranca como root y baja a jenkins.
