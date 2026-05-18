@@ -31,8 +31,7 @@ pipeline {
     stage('Unit') {
       steps {
         sh '''
-          coverage run --source=app --branch -m pytest \
-            --junitxml=result-unit.xml test/unit/
+          coverage run -m pytest --junitxml=result-unit.xml test/unit/
         '''
       }
       post {

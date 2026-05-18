@@ -1,0 +1,10 @@
+[run]
+source = app
+branch = True
+omit =
+    app/__init__.py
+    app/api.py
+
+[report]
+exclude_lines =
+    pragma: no cover
